@@ -130,7 +130,7 @@ When an emergency vehicle is detected:
 4.  A synchronized **green corridor** is created.
 
 <p align="center">
-	<img src="https://github.com/user-attachments/assets/18fba86a-6562-47f4-87ce-daba5c862425" alt="Green Corridor" width="100%" />
+	<img src="https://github.com/user-attachments/assets/4b339900-273f-4f5b-bee4-c98576aea3a3" alt="Green Corridor" width="100%" />
 </p>
 
 This ensures **rapid emergency response and potentially saves lives**.
