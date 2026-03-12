@@ -2,10 +2,6 @@
 
 ## Team: Commit & Conquer
 
-**Members** - Rupesh Varshney - Prakhar Saxena - Austin Varshney - Aryan
-Parashar - Bhomik Varshney
-
-**Institution** Zakir Husain College of Engineering & Technology
 
 ------------------------------------------------------------------------
 
@@ -100,7 +96,6 @@ Signal Logic:
 
 -   More vehicles → Longer green time
 -   Fewer vehicles → Shorter green time
--   Balanced lanes → Optimized rotation
 
 Future versions can implement **Reinforcement Learning for adaptive
 signal control**.
@@ -111,10 +106,6 @@ signal control**.
 
 The system prioritizes emergency vehicles using two approaches.
 
-### GPS Based Detection
-
--   Ambulances share GPS location
--   When within a defined range, emergency mode activates
 
 ### AI Detection
 
@@ -132,7 +123,7 @@ When an emergency vehicle is detected:
 3.  Cross traffic temporarily stops.
 4.  A synchronized **green corridor** is created.
 
-![Green Corridor](https://github.com/user-attachments/assets/0423a608-2062-4fc5-a8c6-b9dfb4017ec1)
+![Green Corridor](https://github.com/user-attachments/assets/ebf740db-8de4-4fe5-8f4e-1fa0d018bc33)
 
 This ensures **rapid emergency response and potentially saves lives**.
 
@@ -192,12 +183,18 @@ single interface.
 
 # ⭐ Key Features
 
--   AI-based real-time traffic monitoring
--   Dynamic traffic signal timing optimization
--   Automatic emergency vehicle green corridor
--   Centralized traffic monitoring dashboard
--   Traffic congestion heatmaps
--   Data-driven traffic analytics
+- Dynamic AI Signal Timing
+Traffic lights automatically adjust green time based on real-time traffic density, eliminating inefficient fixed timers.
+
+- Emergency Vehicle Green Corridor
+The system detects ambulances and fire trucks and creates an instant green corridor by synchronizing signals along the route.
+
+- AI-Based Vehicle Detection
+Using YOLO computer vision, the system accurately detects cars, buses, bikes, and trucks from existing CCTV feeds.
+
+- Predictive Traffic Analytics
+Historical traffic data can be analyzed to predict peak congestion hours and optimize signal plans.
+
 
 ------------------------------------------------------------------------
 
@@ -229,18 +226,9 @@ The system is designed to scale easily.
 
 The solution is practical because it leverages existing infrastructure.
 
--   Uses current **CCTV cameras**
 -   No need for expensive road sensors
 -   Modular architecture for easy development
--   Cloud deployment for scalability
 
-### Hackathon Execution Plan
-
-1.  Setup traffic simulation using SUMO
-2.  Implement YOLO vehicle detection
-3.  Build traffic density calculation
-4.  Implement adaptive signal timing logic
-5.  Demonstrate emergency corridor system
 
 ------------------------------------------------------------------------
 
@@ -293,6 +281,7 @@ https://developers.google.com/maps
 -   Aryan Parashar – B.Tech AI
 -   Prakhar Saxena – B.Tech AI
 
+**Institution** Zakir Husain College of Engineering & Technology, Aligarh Muslim University, Aligarh
 ------------------------------------------------------------------------
 
 # ⭐ Hackathon Project
