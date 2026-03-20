@@ -1,5 +1,6 @@
 import { SUMOIntersectionView } from "@/components/traffic-sim/SUMOIntersectionView";
 import { TrafficCameraScene } from "@/components/traffic-sim/TrafficCameraScene";
+import { useTrafficSim } from "@/context/TrafficSimContext";
 import type { SimIntersection, SimRoadState } from "@/types/traffic-sim";
 import { ArrowLeft, Zap } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -13,6 +14,7 @@ interface IntersectionDetailViewProps {
 
 export function IntersectionDetailView({ intersection, roads, onBack, mlDetectionApiUrl = "http://localhost:8000" }: IntersectionDetailViewProps) {
   const emergencyActive = roads.some((road) => road.ambulanceDetected);
+  const { updateLaneDetectionCount } = useTrafficSim();
   const [enableMLDetection, setEnableMLDetection] = useState(false);
   const [detectionCounts, setDetectionCounts] = useState<Map<number, number>>(new Map());
   const [boxedFrames, setBoxedFrames] = useState<Map<number, string>>(new Map());
@@ -81,7 +83,9 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
 
                 setDetectionCounts((prev) => {
                   const newMap = new Map(prev);
-                  newMap.set(cameraIndex, result.detection_count ?? 0);
+                  const frameCount = result.detection_count ?? 0;
+                  newMap.set(cameraIndex, frameCount);
+                  updateLaneDetectionCount(cameraIndex, frameCount);
                   return newMap;
                 });
 
@@ -111,7 +115,7 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
       clearInterval(interval);
       processingRef.current = false;
     };
-  }, [enableMLDetection, mlDetectionApiUrl]);
+  }, [enableMLDetection, mlDetectionApiUrl, updateLaneDetectionCount]);
   // const totalQueueVehicles = roads.reduce((sum, road) => sum + road.vehicles.length, 0);
   // const totalEnteredVehicles = roads.reduce((sum, road) => sum + road.vehicleCount, 0);
 
@@ -227,7 +231,9 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
                       {road.signal.toUpperCase()}
                     </span>
                   </div>
-                  <div className="mt-1 text-white/80">Queue: {road.vehicles.length} | Entered: {road.vehicleCount}</div>
+                  <div className="mt-1 text-white/80">
+                    Vehicle Count: {road.detectionCount} | {road.signal === "red" ? "To Green" : "To Red"}: {road.signalTimeLeft.toFixed(1)}s
+                  </div>
                   <div className={road.ambulanceDetected ? "mt-1 text-red-400" : "mt-1 text-white/70"}>
                     Ambulance: {road.ambulanceDetected ? "YES" : "NO"}
                   </div>

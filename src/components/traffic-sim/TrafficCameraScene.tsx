@@ -101,8 +101,20 @@ export function TrafficCameraScene({
           </span>
         </div>
         <div className="flex items-center gap-3 text-slate-300">
-          <span>Queue {focusRoad.vehicles.length}</span>
-          <span>Entered {focusRoad.vehicleCount}</span>
+          <span>Vehicle Count {focusRoad.detectionCount}</span>
+          <span
+            className={
+              focusRoad.signal === "red"
+                ? "text-red-300"
+                : focusRoad.signal === "green"
+                  ? "text-green-300"
+                  : "text-amber-300"
+            }
+          >
+            {focusRoad.signal === "red"
+              ? `To Green ${focusRoad.signalTimeLeft.toFixed(1)}s`
+              : `To Red ${focusRoad.signalTimeLeft.toFixed(1)}s`}
+          </span>
         </div>
       </div>
 
