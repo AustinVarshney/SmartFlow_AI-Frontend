@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import type { SignalState, SimRoadState } from "@/types/traffic-sim";
 import { IntersectionWorld, type IntersectionCameraPose } from "@/components/traffic-sim/Intersection3DEnvironment";
@@ -10,10 +9,10 @@ interface TrafficCameraSceneProps {
 }
 
 const CAMERA_POSES: IntersectionCameraPose[] = [
-  { position: [0, 26, 46], lookAt: [0, 1.4, -8] },
-  { position: [-46, 24, 0], lookAt: [8, 1.4, 0] },
-  { position: [0, 26, -46], lookAt: [0, 1.4, 8] },
-  { position: [46, 24, 0], lookAt: [-8, 1.4, 0] },
+  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 1: approach from +Z, rear-follow view
+  { position: [46, 24, 0], lookAt: [-20, 1.4, 0] },    // Lane 2: approach from +X, rear-follow view
+  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 3: approach from -Z, rear-follow view
+  { position: [-46, 24, 0], lookAt: [20, 1.4, 0] },    // Lane 4: approach from -X, rear-follow view
 ];
 
 function lampClass(lamp: SignalState, current: SignalState) {
@@ -49,16 +48,10 @@ function Scene({ roads, cameraPose }: { roads: SimRoadState[]; cameraPose: Inter
 export function TrafficCameraScene({ roads, cameraIndex, cameraLabel }: TrafficCameraSceneProps) {
   const focusRoad = roads[cameraIndex] ?? roads[0];
   const cameraPose = CAMERA_POSES[cameraIndex] ?? CAMERA_POSES[0];
-  const frozenRoadsRef = useRef<SimRoadState[]>(roads);
 
-  useEffect(() => {
-    // Only the active green feed keeps animating; other camera feeds stay visually paused.
-    if (focusRoad?.signal === "green") {
-      frozenRoadsRef.current = roads;
-    }
-  }, [focusRoad?.signal, roads]);
+  // All cameras show live traffic - no freezing
+  const roadsForRender = roads;
 
-  const roadsForRender = focusRoad?.signal === "green" ? roads : frozenRoadsRef.current;
   const timestamp = new Date().toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -116,7 +109,7 @@ export function TrafficCameraScene({ roads, cameraIndex, cameraLabel }: TrafficC
           shadows={false}
           gl={{ antialias: true, powerPreference: "high-performance" }}
           dpr={[0.75, 1]}
-          camera={{ position: cameraPose.position, fov: 34 }}
+          camera={{ position: cameraPose.position, fov: 42 }}
         >
           <Scene roads={roadsForRender} cameraPose={cameraPose} />
         </Canvas>

@@ -1,5 +1,22 @@
 import type { SimRoadState } from "@/types/traffic-sim";
 
+type LaneId = "N" | "S" | "E" | "W";
+
+const LANE_ROTATION_STEPS: Record<LaneId, number> = {
+  S: 0,
+  W: 1,
+  N: 2,
+  E: 3,
+};
+
+function rotationIndexForRoad(road: SimRoadState, fallback: number) {
+  const laneId = road?.id as LaneId | undefined;
+  if (laneId && LANE_ROTATION_STEPS[laneId] !== undefined) {
+    return LANE_ROTATION_STEPS[laneId];
+  }
+  return fallback;
+}
+
 interface SUMOIntersectionViewProps {
   roads: SimRoadState[];
 }
@@ -208,30 +225,31 @@ export function SUMOIntersectionView({ roads }: SUMOIntersectionViewProps) {
 
           {Array.from({ length: 4 }).map((_, roadIndex) => {
             const road = roads[roadIndex];
+            const rotationIndex = rotationIndexForRoad(road, roadIndex);
             const signalColor = road?.signal === "red" ? "#ef4444" : road?.signal === "yellow" ? "#fbbf24" : road?.signal === "green" ? "#22c55e" : "#475569";
 
             return (
               <g key={`road-${roadIndex}`}>
                 {/* Incoming stop line */}
                 {(() => {
-                  const p1 = rotatePoint(CENTER_X + 2, STOP_LINE_Y, roadIndex);
-                  const p2 = rotatePoint(CENTER_X + ROAD_HALF_WIDTH, STOP_LINE_Y, roadIndex);
+                  const p1 = rotatePoint(CENTER_X + 2, STOP_LINE_Y, rotationIndex);
+                  const p2 = rotatePoint(CENTER_X + ROAD_HALF_WIDTH, STOP_LINE_Y, rotationIndex);
                   return <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#ffffff" strokeWidth="2.5" />;
                 })()}
 
                 {/* Direction guides */}
                 {(() => {
-                  const a1 = rotatePoint(CENTER_X + 12, APPROACH_START + 2, roadIndex);
-                  const a2 = rotatePoint(CENTER_X + 12, STOP_LINE_Y - 6, roadIndex);
-                  const ap = rotatePoint(CENTER_X + 12, STOP_LINE_Y - 2, roadIndex);
-                  const apL = rotatePoint(CENTER_X + 8, STOP_LINE_Y - 10, roadIndex);
-                  const apR = rotatePoint(CENTER_X + 16, STOP_LINE_Y - 10, roadIndex);
+                  const a1 = rotatePoint(CENTER_X + 12, APPROACH_START + 2, rotationIndex);
+                  const a2 = rotatePoint(CENTER_X + 12, STOP_LINE_Y - 6, rotationIndex);
+                  const ap = rotatePoint(CENTER_X + 12, STOP_LINE_Y - 2, rotationIndex);
+                  const apL = rotatePoint(CENTER_X + 8, STOP_LINE_Y - 10, rotationIndex);
+                  const apR = rotatePoint(CENTER_X + 16, STOP_LINE_Y - 10, rotationIndex);
 
-                  const b1 = rotatePoint(CENTER_X - 12, STOP_LINE_Y + 8, roadIndex);
-                  const b2 = rotatePoint(CENTER_X - 12, APPROACH_START + 8, roadIndex);
-                  const bp = rotatePoint(CENTER_X - 12, APPROACH_START + 6, roadIndex);
-                  const bpL = rotatePoint(CENTER_X - 8, APPROACH_START + 14, roadIndex);
-                  const bpR = rotatePoint(CENTER_X - 16, APPROACH_START + 14, roadIndex);
+                  const b1 = rotatePoint(CENTER_X - 12, STOP_LINE_Y + 8, rotationIndex);
+                  const b2 = rotatePoint(CENTER_X - 12, APPROACH_START + 8, rotationIndex);
+                  const bp = rotatePoint(CENTER_X - 12, APPROACH_START + 6, rotationIndex);
+                  const bpL = rotatePoint(CENTER_X - 8, APPROACH_START + 14, rotationIndex);
+                  const bpR = rotatePoint(CENTER_X - 16, APPROACH_START + 14, rotationIndex);
 
                   return (
                     <>
@@ -246,7 +264,7 @@ export function SUMOIntersectionView({ roads }: SUMOIntersectionViewProps) {
 
                 {/* Signal for incoming side */}
                 {(() => {
-                  const s = rotatePoint(CENTER_X + ROAD_HALF_WIDTH + 8, STOP_LINE_Y - 8, roadIndex);
+                  const s = rotatePoint(CENTER_X + ROAD_HALF_WIDTH + 8, STOP_LINE_Y - 8, rotationIndex);
                   return <circle cx={s.x} cy={s.y} r="5" fill={signalColor} />;
                 })()}
 
@@ -257,8 +275,8 @@ export function SUMOIntersectionView({ roads }: SUMOIntersectionViewProps) {
                     ? outgoingVehiclePose(vehicle.progress, -laneOffset)
                     : incomingVehiclePose(vehicle.progress, laneOffset, turnType);
 
-                  const p = rotatePoint(localPose.x, localPose.y, roadIndex);
-                  const rotation = localPose.angleDeg + roadIndex * 90;
+                  const p = rotatePoint(localPose.x, localPose.y, rotationIndex);
+                  const rotation = localPose.angleDeg + rotationIndex * 90;
 
                   return (
                     <rect

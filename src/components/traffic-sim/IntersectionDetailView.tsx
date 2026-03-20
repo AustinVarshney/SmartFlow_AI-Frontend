@@ -2,6 +2,7 @@ import { SUMOIntersectionView } from "@/components/traffic-sim/SUMOIntersectionV
 import { TrafficCameraScene } from "@/components/traffic-sim/TrafficCameraScene";
 import type { SimIntersection, SimRoadState } from "@/types/traffic-sim";
 import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 
 interface IntersectionDetailViewProps {
   intersection: SimIntersection;
@@ -11,8 +12,8 @@ interface IntersectionDetailViewProps {
 
 export function IntersectionDetailView({ intersection, roads, onBack }: IntersectionDetailViewProps) {
   const emergencyActive = roads.some((road) => road.ambulanceDetected);
-  const totalQueueVehicles = roads.reduce((sum, road) => sum + road.vehicles.length, 0);
-  const totalEnteredVehicles = roads.reduce((sum, road) => sum + road.vehicleCount, 0);
+  // const totalQueueVehicles = roads.reduce((sum, road) => sum + road.vehicles.length, 0);
+  // const totalEnteredVehicles = roads.reduce((sum, road) => sum + road.vehicleCount, 0);
 
   return (
     <div className="space-y-4">
@@ -55,8 +56,8 @@ export function IntersectionDetailView({ intersection, roads, onBack }: Intersec
         <div className="rounded-lg border border-white/15 bg-black/35 p-4 space-y-4 xl:sticky xl:top-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground font-mono">Intersection Summary</div>
-            <div className="mt-2 text-sm font-mono text-white/90">Live Queue Vehicles: {totalQueueVehicles}</div>
-            <div className="text-sm font-mono text-white/90">Vehicles Entered: {totalEnteredVehicles}</div>
+            {/* <div className="mt-2 text-sm font-mono text-white/90">Live Queue Vehicles: {totalQueueVehicles}</div>
+            <div className="text-sm font-mono text-white/90">Vehicles Entered: {totalEnteredVehicles}</div> */}
             <div className="text-sm font-mono text-white/90">Emergency Lanes: {roads.filter((r) => r.ambulanceDetected).length}</div>
           </div>
 

@@ -1,9 +1,12 @@
 import type { SimRoadState } from "@/types/traffic-sim";
 import { Ambulance, ArrowUp, Bike, Bus, Car } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface IntersectionMapViewProps {
   roads: SimRoadState[];
   onLaneClick?: (laneIndex: number) => void;
+  activeLane?: number;
+  cameraFeeds?: ReactNode[];
 }
 
 const LANE_LABELS = ["North", "East", "South", "West"];
