@@ -9,9 +9,9 @@ interface TrafficCameraSceneProps {
 }
 
 const CAMERA_POSES: IntersectionCameraPose[] = [
-  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 1: approach from +Z, rear-follow view
+  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 1: approach from +Z, rear-follow view
   { position: [46, 24, 0], lookAt: [-20, 1.4, 0] },    // Lane 2: approach from +X, rear-follow view
-  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 3: approach from -Z, rear-follow view
+  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 3: approach from -Z, rear-follow view
   { position: [-46, 24, 0], lookAt: [20, 1.4, 0] },    // Lane 4: approach from -X, rear-follow view
 ];
 
