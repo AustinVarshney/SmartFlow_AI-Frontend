@@ -9,12 +9,13 @@ interface TrafficCameraSceneProps {
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
   showDetectionOverlay?: boolean;
   boxedFrameSrc?: string;
+  ambulanceDetected?: boolean;
 }
 
 const CAMERA_POSES: IntersectionCameraPose[] = [
-  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 1: approach from +Z, rear-follow view
+  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 1: approach from +Z, rear-follow view
   { position: [46, 24, 0], lookAt: [-20, 1.4, 0] },    // Lane 2: approach from +X, rear-follow view
-  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 3: approach from -Z, rear-follow view
+  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 3: approach from -Z, rear-follow view
   { position: [-46, 24, 0], lookAt: [20, 1.4, 0] },    // Lane 4: approach from -X, rear-follow view
 ];
 
@@ -55,6 +56,7 @@ export function TrafficCameraScene({
   onCanvasReady,
   showDetectionOverlay = false,
   boxedFrameSrc,
+  ambulanceDetected = false,
 }: TrafficCameraSceneProps) {
   const focusRoad = roads[cameraIndex] ?? roads[0];
   const cameraPose = CAMERA_POSES[cameraIndex] ?? CAMERA_POSES[0];
@@ -99,6 +101,9 @@ export function TrafficCameraScene({
           <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${signalBadgeClass(focusRoad.signal)}`}>
             {focusRoad.signal.toUpperCase()}
           </span>
+          {ambulanceDetected && (
+            <span className="px-2 py-0.5 rounded border border-red-500/60 bg-red-500/20 text-red-300 text-[10px] font-semibold">🚑 AMBULANCE</span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-slate-300">
           <span>Vehicle Count {focusRoad.detectionCount}</span>

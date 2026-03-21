@@ -474,7 +474,7 @@ function Vehicles({ roads }: { roads: SimRoadState[] }) {
       {roads.map((road, roadIndex) => {
         const roadAngle = laneRotationFromId(road, roadIndex);
         // Fix vehicle orientation for East/West lanes
-        const yawCorrection = (road.id === 'E' || road.id === 'W') ? -Math.PI : 0;
+        const yawCorrection = (roadIndex === 1 || roadIndex === 3) ? -Math.PI : 0;
 
         return road.vehicles.map((vehicle) => {
           const local = getLocalVehiclePose(vehicle);

@@ -23,11 +23,14 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
   const [lastPollTime, setLastPollTime] = useState<string>("-");
   const canvasRefsMap = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const processingRef = useRef<boolean>(false);
+  const frameCounterRef = useRef<Map<number, number>>(new Map());
+  const FRAME_SKIP = 8; // Process every 4th frame (75% reduction in inference calls)
 
   // Fetch detections from all cameras
   useEffect(() => {
     if (!enableMLDetection) {
       canvasRefsMap.current.clear();
+      frameCounterRef.current.clear();
       setDetectionCounts(new Map());
       setBoxedFrames(new Map());
       setApiStatus("idle");
@@ -61,6 +64,15 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
 
         canvasRefsMap.current.forEach((canvas, cameraIndex) => {
           if (!canvas) return;
+
+          // Increment frame counter for this camera
+          const currentCount = frameCounterRef.current.get(cameraIndex) ?? 0;
+          frameCounterRef.current.set(cameraIndex, currentCount + 1);
+
+          // Only process detection if this is a frame we should process (every FRAME_SKIP frames)
+          if (currentCount % FRAME_SKIP !== 0) {
+            return; // Skip this frame, continue rendering last known good frame
+          }
 
           const promise = (async () => {
             try {
@@ -162,94 +174,61 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-4 items-start">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roads.map((road, index) => (
-                <div key={`camera-${road.id}`} className="h-[300px] relative">
-                  <div className="absolute inset-0 z-0">
-                    <TrafficCameraScene
-                      roads={roads}
-                      cameraIndex={index}
-                      cameraLabel={`Lane ${index + 1}`}
-                      showDetectionOverlay={enableMLDetection}
-                      boxedFrameSrc={boxedFrames.get(index)}
-                      onCanvasReady={(canvas) => {
-                        canvasRefsMap.current.set(index, canvas);
-                      }}
-                    />
-                  </div>
-
-                  {enableMLDetection && (
-                    <div className="absolute top-2 right-2 z-20 rounded border border-cyan-400/40 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-mono text-cyan-100 pointer-events-none">
-                      AI LIVE
-                    </div>
-                  )}
+      {/* Top Info Bar: AI Polls and Last Poll */}
+      {enableMLDetection && (
+        <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 px-4 py-3 text-[11px] font-mono text-purple-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex gap-2">
+                <span>AI Polls</span>
+                <span className="text-purple-300 font-bold">{requestCount}</span>
               </div>
-            ))}
-          </div>
-
-          {/* SUMO-style 2D intersection overview */}
-          <div className="h-[340px] md:h-[430px] lg:h-[540px] xl:h-[620px] 2xl:h-[700px]">
-            <SUMOIntersectionView roads={roads} />
-          </div>
-
-          {/* 3D intersection environment mirroring SUMO + camera feed vehicle logic (no pedestrians). */}
-          {/* <div className="h-[360px] md:h-[430px] lg:h-[520px] xl:h-[600px] 2xl:h-[680px]">
-            <Intersection3DEnvironment roads={roads} />
-          </div> */}
-        </div>
-
-        <div className="rounded-lg border border-white/15 bg-black/35 p-4 space-y-4 xl:sticky xl:top-4">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground font-mono">Intersection Summary</div>
-            {/* <div className="mt-2 text-sm font-mono text-white/90">Live Queue Vehicles: {totalQueueVehicles}</div>
-            <div className="text-sm font-mono text-white/90">Vehicles Entered: {totalEnteredVehicles}</div> */}
-            <div className="text-sm font-mono text-white/90">Emergency Lanes: {roads.filter((r) => r.ambulanceDetected).length}</div>
-          </div>
-
-          <div className="border-t border-white/10 pt-3">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground font-mono mb-2">Lane Metrics</div>
-            {enableMLDetection && (
-              <div className="mb-3 rounded-md border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-[11px] font-mono text-purple-200">
-                <div className="flex justify-between">
-                  <span>AI Polls</span>
-                  <span>{requestCount}</span>
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span>Last Poll</span>
-                  <span>{lastPollTime}</span>
-                </div>
+              <div className="flex gap-2">
+                <span>Last Poll</span>
+                <span className="text-purple-300 font-bold">{lastPollTime}</span>
               </div>
-            )}
-            <div className="space-y-2">
-              {roads.map((road, index) => (
-                <div key={`metrics-${road.id}`} className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono">
-                  <div className="flex justify-between text-white/90">
-                    <span>Lane {index + 1}</span>
-                    <span className={road.signal === "green" ? "text-green-400" : road.signal === "yellow" ? "text-yellow-300" : "text-red-400"}>
-                      {road.signal.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-white/80">
-                    Vehicle Count: {road.detectionCount} | {road.signal === "red" ? "To Green" : "To Red"}: {road.signalTimeLeft.toFixed(1)}s
-                  </div>
-                  <div className={road.ambulanceDetected ? "mt-1 text-red-400" : "mt-1 text-white/70"}>
-                    Ambulance: {road.ambulanceDetected ? "YES" : "NO"}
-                  </div>
-
-                    {enableMLDetection && detectionCounts.has(index) && (
-                      <div className="mt-2 pt-2 border-t border-purple-500/30">
-                        <div className="text-purple-300 flex justify-between">
-                          <span>AI Detections:</span>
-                          <span className="font-bold">{detectionCounts.get(index) || 0}</span>
-                        </div>
-                      </div>
-                    )}
-                </div>
-              ))}
+              <div className="flex gap-2">
+                <span>API Status</span>
+                <span className={apiStatus === "connected" ? "text-emerald-300 font-bold" : apiStatus === "checking" ? "text-amber-200 font-bold" : "text-rose-200 font-bold"}>
+                  {apiStatus === "connected" ? "CONNECTED" : apiStatus === "checking" ? "CHECKING" : "ERROR"}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {/* CCTV Camera Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {roads.map((road, index) => (
+            <div key={`camera-${road.id}`} className="h-[300px] relative">
+              <div className="absolute inset-0 z-0">
+                <TrafficCameraScene
+                  roads={roads}
+                  cameraIndex={index}
+                  cameraLabel={`Lane ${index + 1}`}
+                  showDetectionOverlay={enableMLDetection}
+                  boxedFrameSrc={boxedFrames.get(index)}
+                  ambulanceDetected={road.ambulanceDetected}
+                  onCanvasReady={(canvas) => {
+                    canvasRefsMap.current.set(index, canvas);
+                  }}
+                />
+              </div>
+
+              {enableMLDetection && (
+                <div className="absolute top-2 right-2 z-20 rounded border border-cyan-400/40 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-mono text-cyan-100 pointer-events-none">
+                  AI LIVE
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* SUMO-style 2D intersection overview */}
+        <div className="h-[340px] md:h-[430px] lg:h-[540px] xl:h-[620px] 2xl:h-[700px]">
+          <SUMOIntersectionView roads={roads} />
         </div>
       </div>
     </div>
