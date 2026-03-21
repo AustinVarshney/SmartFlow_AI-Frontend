@@ -4,6 +4,7 @@ import { useTrafficSim } from "@/context/TrafficSimContext";
 import type { SimIntersection, SimRoadState } from "@/types/traffic-sim";
 import { ArrowLeft, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface IntersectionDetailViewProps {
   intersection: SimIntersection;
@@ -15,7 +16,7 @@ interface IntersectionDetailViewProps {
 export function IntersectionDetailView({ intersection, roads, onBack, mlDetectionApiUrl = "http://localhost:8000" }: IntersectionDetailViewProps) {
   const emergencyActive = roads.some((road) => road.ambulanceDetected);
   const { updateLaneDetectionCount } = useTrafficSim();
-  const [enableMLDetection, setEnableMLDetection] = useState(false);
+  const enableMLDetection = true; // AI Detection always enabled
   const [detectionCounts, setDetectionCounts] = useState<Map<number, number>>(new Map());
   const [detectionOverlays, setDetectionOverlays] = useState<
     Map<number, { detections: Array<{ type: string; bbox: number[] }>; frameWidth: number; frameHeight: number }>
@@ -164,15 +165,11 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
             <div className="text-xs font-mono text-muted-foreground">Intersection ID: {intersection.id}</div>
           </div>
           <button
-            onClick={() => setEnableMLDetection(!enableMLDetection)}
-            className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all ${
-              enableMLDetection
-                ? "border-purple-500/50 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30"
-                : "border-white/20 bg-black/35 text-slate-400 hover:bg-black/50"
-            }`}
+            disabled
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-purple-500/50 bg-purple-500/20 text-purple-300 font-medium text-sm cursor-default"
           >
             <Zap className="w-4 h-4" />
-            {enableMLDetection ? "AI Detection ON" : "Enable AI Detection"}
+            AI Detection ON
           </button>
           {enableMLDetection && (
             <div

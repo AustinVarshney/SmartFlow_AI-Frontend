@@ -1,56 +1,145 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassPanel } from "@/components/GlassPanel";
 import { TrafficLight } from "@/components/TrafficLight";
-import { useLiveSignalTiming, useLiveCongestionAnalytics } from "@/hooks/use-smartflow";
+import { useLiveCongestionAnalytics } from "@/hooks/use-smartflow";
+import { useTrafficSim } from "@/context/TrafficSimContext";
 import { cn } from "@/lib/utils";
-import { Settings2, ArrowRight } from "lucide-react";
+import { Settings2, AlertTriangle, Clock, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 
 export default function Signals() {
-  const { data: signals } = useLiveSignalTiming();
+  const { state } = useTrafficSim();
   const { data: analytics } = useLiveCongestionAnalytics();
+
+  // Transform simulation data to match signal display format
+  const liveSignals = state.roads.map((road, index) => {
+    // Calculate density based on vehicle count
+    const density = road.detectionCount >= 15 ? 'high' : road.detectionCount >= 8 ? 'medium' : 'low';
+
+    // Calculate cycle time (total time for complete signal cycle)
+    const cycleTime = state.signalController.activeRoadIndex === index
+      ? (state.signalController.phase === 'green' ? state.signalController.timeLeft + 3 : state.signalController.timeLeft)
+      : road.signalTimeLeft;
+
+    // Phase elapsed (time in current phase)
+    const phaseElapsed = state.signalController.activeRoadIndex === index
+      ? (state.signalController.phase === 'green' ? 25 - state.signalController.timeLeft : 3 - state.signalController.timeLeft)
+      : 0;
+
+    // Calculate queue length (vehicles waiting)
+    const queueLength = road.vehicles.filter(v => !v.isOutgoing && v.progress < 0.85).length;
+
+    return {
+      id: road.id,
+      lane: road.label,
+      signal: road.signal,
+      vehicles: road.detectionCount,
+      density,
+      signalTimeLeft: road.signalTimeLeft,
+      cycleTime: Math.round(cycleTime),
+      phaseElapsed: Math.round(phaseElapsed),
+      ambulanceDetected: road.ambulanceDetected,
+      waitingTime: Math.round(road.waitingTime),
+      queueLength,
+      throughput: road.vehicleCount,
+    };
+  });
+
+  // Calculate overall intersection metrics
+  const totalVehicles = state.roads.reduce((sum, road) => sum + road.detectionCount, 0);
+  const avgWaitTime = state.roads.reduce((sum, road) => sum + road.waitingTime, 0) / state.roads.length;
+  const emergencyLanes = state.roads.filter(road => road.ambulanceDetected).length;
+  const activeLane = state.roads[state.signalController.activeRoadIndex];
 
   return (
     <AppLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">SIGNAL OPTIMIZATION</h1>
-        <p className="text-muted-foreground font-mono text-sm">ADAPTIVE TRAFFIC LIGHT CONTROL SYSTEMS</p>
+        <p className="text-muted-foreground font-mono text-sm">ADAPTIVE TRAFFIC LIGHT CONTROL SYSTEMS - LIVE CAMERA SYNC</p>
+      </div>
+
+      {/* Real-time Metrics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <GlassPanel className="p-4">
+          <div className="text-xs text-muted-foreground font-mono mb-1">TOTAL VEHICLES</div>
+          <div className="text-2xl font-display font-bold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            {totalVehicles}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel className="p-4">
+          <div className="text-xs text-muted-foreground font-mono mb-1">AVG WAIT TIME</div>
+          <div className="text-2xl font-display font-bold flex items-center gap-2">
+            <Clock className="w-5 h-5 text-warning" />
+            {Math.round(avgWaitTime)}s
+          </div>
+        </GlassPanel>
+
+        <GlassPanel className="p-4">
+          <div className="text-xs text-muted-foreground font-mono mb-1">ACTIVE LANE</div>
+          <div className="text-2xl font-display font-bold flex items-center gap-2 text-success">
+            <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
+            {activeLane?.label}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel className="p-4">
+          <div className="text-xs text-muted-foreground font-mono mb-1">EMERGENCY ALERTS</div>
+          <div className="text-2xl font-display font-bold flex items-center gap-2 text-destructive">
+            <AlertTriangle className="w-5 h-5" />
+            {emergencyLanes}
+          </div>
+        </GlassPanel>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        
-        {/* Signal Control Table */}
+
+        {/* Signal Control Table - Synced with Live Camera Feeds */}
         <GlassPanel className="xl:col-span-2 p-6 flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-display font-semibold flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-primary" />
               LIVE INTERSECTION STATUS
+              <span className="text-xs font-mono text-primary/80">(CAMERA SYNC)</span>
             </h2>
             <div className="text-xs font-mono px-2 py-1 bg-white/5 border border-white/10 rounded">
               AUTO-ADAPT: <span className="text-success text-glow-success">ON</span>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs font-mono text-muted-foreground border-b border-border">
                 <tr>
-                  <th className="pb-4 font-medium pl-2">NODE</th>
+                  <th className="pb-4 font-medium pl-2">LANE</th>
                   <th className="pb-4 font-medium">LIGHT</th>
-                  <th className="pb-4 font-medium">LOAD</th>
-                  <th className="pb-4 font-medium">GREEN TIME</th>
-                  <th className="pb-4 font-medium text-right pr-4">ACTIONS</th>
+                  <th className="pb-4 font-medium">VEHICLES</th>
+                  <th className="pb-4 font-medium">QUEUE</th>
+                  <th className="pb-4 font-medium">SIGNAL TIME</th>
+                  <th className="pb-4 font-medium">WAIT TIME</th>
+                  <th className="pb-4 font-medium">STATUS</th>
                 </tr>
               </thead>
               <tbody>
-                {(signals?.signals || []).map((sig) => (
-                  <tr key={sig.id} className="border-b border-border/30 hover:bg-white/5 transition-colors">
+                {liveSignals.map((sig) => (
+                  <tr key={sig.id} className={cn(
+                    "border-b border-border/30 hover:bg-white/5 transition-colors",
+                    sig.signal === 'green' && "bg-success/5"
+                  )}>
                     <td className="py-4 pl-2">
-                      <div className="font-medium text-white">{sig.intersection}</div>
-                      <div className="text-[10px] font-mono text-muted-foreground">ID: {sig.id}</div>
+                      <div className="font-medium text-white flex items-center gap-2">
+                        {sig.lane}
+                        {sig.signal === 'green' && (
+                          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                        )}
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground">
+                        Throughput: {sig.throughput}v
+                      </div>
                     </td>
                     <td className="py-4">
-                      <TrafficLight phase={sig.currentPhase} size="sm" horizontal />
+                      <TrafficLight phase={sig.signal} size="sm" horizontal />
                     </td>
                     <td className="py-4">
                       <div className="flex items-center gap-2">
@@ -62,29 +151,88 @@ export default function Signals() {
                         )}>
                           {sig.density}
                         </span>
-                        <span className="text-xs text-muted-foreground font-mono">{sig.vehicles}v</span>
+                        <span className="text-xs text-white font-mono font-bold">{sig.vehicles}v</span>
                       </div>
                     </td>
                     <td className="py-4">
-                      <div className="w-24 bg-black/50 rounded-full h-1.5 overflow-hidden border border-white/5 relative">
-                        <div 
-                          className="h-full bg-primary transition-all"
-                          style={{ width: `${(sig.phaseElapsed / sig.cycleTime) * 100}%` }}
-                        />
-                      </div>
-                      <div className="text-[10px] font-mono text-muted-foreground mt-1">
-                        {sig.phaseElapsed}s / {sig.cycleTime}s
+                      <div className="flex items-center gap-1">
+                        <div className="w-16 bg-black/50 rounded-full h-1.5 overflow-hidden border border-white/5">
+                          <div
+                            className={cn(
+                              "h-full transition-all",
+                              sig.queueLength >= 8 ? "bg-destructive" :
+                              sig.queueLength >= 4 ? "bg-warning" : "bg-success"
+                            )}
+                            style={{ width: `${Math.min(100, (sig.queueLength / 10) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono">{sig.queueLength}</span>
                       </div>
                     </td>
-                    <td className="py-4 pr-4 text-right">
-                      <button className="text-xs font-mono bg-white/5 hover:bg-primary/20 text-white hover:text-primary border border-white/10 hover:border-primary/50 transition-all px-3 py-1.5 rounded cursor-pointer">
-                        OVERRIDE
-                      </button>
+                    <td className="py-4">
+                      <div className="space-y-1">
+                        <div className={cn(
+                          "text-xs font-mono font-bold",
+                          sig.signal === 'green' ? "text-success" :
+                          sig.signal === 'yellow' ? "text-warning" : "text-destructive"
+                        )}>
+                          {sig.signal === 'green' ? 'TO RED' :
+                           sig.signal === 'yellow' ? 'TO RED' : 'TO GREEN'}: {Math.round(sig.signalTimeLeft)}s
+                        </div>
+                        {sig.signal === 'green' && (
+                          <div className="w-20 bg-black/50 rounded-full h-1 overflow-hidden border border-white/5">
+                            <div
+                              className="h-full bg-success transition-all"
+                              style={{ width: `${(sig.phaseElapsed / sig.cycleTime) * 100}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <div className={cn(
+                        "text-xs font-mono font-bold",
+                        sig.waitingTime > 120 ? "text-destructive" :
+                        sig.waitingTime > 60 ? "text-warning" : "text-muted-foreground"
+                      )}>
+                        {sig.waitingTime}s
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      {sig.ambulanceDetected && (
+                        <div className="px-2 py-0.5 rounded border border-destructive/50 bg-destructive/20 text-destructive text-[10px] font-mono font-bold flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          EMERGENCY
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Signal Controller Info */}
+          <div className="mt-4 pt-4 border-t border-border/30">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-4">
+                <span className="text-muted-foreground">CONTROLLER MODE:</span>
+                <span className="text-primary font-bold">ADAPTIVE</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-muted-foreground">CURRENT PHASE:</span>
+                <span className={cn(
+                  "font-bold uppercase",
+                  state.signalController.phase === 'green' ? "text-success" : "text-warning"
+                )}>
+                  {state.signalController.phase}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-muted-foreground">PHASE TIME LEFT:</span>
+                <span className="text-white font-bold">{Math.round(state.signalController.timeLeft)}s</span>
+              </div>
+            </div>
           </div>
         </GlassPanel>
 
@@ -93,30 +241,55 @@ export default function Signals() {
           <h2 className="text-lg font-display font-semibold mb-6">CONGESTION INDEX</h2>
           <div className="flex-1 min-h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics?.data || []} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <BarChart
+                data={liveSignals.map(sig => ({
+                  lane: sig.lane,
+                  congestion: Math.round((sig.vehicles / 20) * 100),
+                }))}
+                layout="vertical"
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                 <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="intersection" 
-                  type="category" 
-                  axisLine={false} 
-                  tickLine={false} 
+                <YAxis
+                  dataKey="lane"
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   width={80}
                 />
-                <RechartsTooltip 
+                <RechartsTooltip
                   cursor={{ fill: 'hsl(var(--white)/0.05)' }}
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))' }}
                 />
                 <Bar dataKey="congestion" radius={[0, 4, 4, 0]} animationDuration={500}>
-                  {(analytics?.data || []).map((entry, index) => {
-                    const color = entry.congestion > 80 ? 'hsl(var(--destructive))' : 
-                                  entry.congestion > 50 ? 'hsl(var(--warning))' : 'hsl(var(--success))';
+                  {liveSignals.map((sig, index) => {
+                    const congestion = Math.round((sig.vehicles / 20) * 100);
+                    const color = congestion > 80 ? 'hsl(var(--destructive))' :
+                                  congestion > 50 ? 'hsl(var(--warning))' : 'hsl(var(--success))';
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Live Stats */}
+          <div className="mt-4 pt-4 border-t border-border/30 space-y-2">
+            <div className="text-[10px] font-mono text-muted-foreground">LIVE CAMERA METRICS</div>
+            {liveSignals.map((sig) => (
+              <div key={sig.id} className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-mono">{sig.lane}</span>
+                <span className={cn(
+                  "font-mono font-bold",
+                  sig.vehicles >= 15 ? "text-destructive" :
+                  sig.vehicles >= 8 ? "text-warning" : "text-success"
+                )}>
+                  {sig.vehicles} vehicles
+                </span>
+              </div>
+            ))}
           </div>
         </GlassPanel>
 

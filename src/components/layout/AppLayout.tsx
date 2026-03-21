@@ -1,30 +1,57 @@
 import { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, Menu, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-expanded');
+      return stored !== null ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-expanded', JSON.stringify(isSidebarExpanded));
+  }, [isSidebarExpanded]);
 
   return (
     <div
       className="group/app min-h-screen bg-background text-foreground flex"
       data-sidebar-expanded={isSidebarExpanded}
     >
-      <Sidebar onExpandedChange={setIsSidebarExpanded} />
+      <Sidebar onExpandedChange={setIsSidebarExpanded} isExpanded={isSidebarExpanded} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         {/* Header */}
         <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-8 z-40 sticky top-0">
-          <div className="flex items-center bg-black/40 border border-white/10 rounded-full px-4 py-1.5 w-64 focus-within:border-primary/50 transition-colors">
-            <Search className="w-4 h-4 text-muted-foreground mr-2" />
-            <input 
-              type="text" 
-              placeholder="Search intersection..." 
-              className="bg-transparent border-none outline-none text-sm w-full font-mono placeholder:text-muted-foreground/50"
-            />
+          <div className="flex items-center gap-4">
+            {/* Sidebar Toggle Button */}
+            <button
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+              title={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {isSidebarExpanded ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Search Bar */}
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-full px-4 py-1.5 w-64 focus-within:border-primary/50 transition-colors">
+              <Search className="w-4 h-4 text-muted-foreground mr-2" />
+              <input
+                type="text"
+                placeholder="Search intersection..."
+                className="bg-transparent border-none outline-none text-sm w-full font-mono placeholder:text-muted-foreground/50"
+              />
+            </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <button className="relative p-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer">
               <Bell className="w-5 h-5 text-muted-foreground" />
