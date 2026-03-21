@@ -6,12 +6,16 @@ interface TrafficCameraSceneProps {
   roads: SimRoadState[];
   cameraIndex: number;
   cameraLabel: string;
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
+  showDetectionOverlay?: boolean;
+  boxedFrameSrc?: string;
+  ambulanceDetected?: boolean;
 }
 
 const CAMERA_POSES: IntersectionCameraPose[] = [
-  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 1: approach from +Z, rear-follow view
+  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 1: approach from +Z, rear-follow view
   { position: [46, 24, 0], lookAt: [-20, 1.4, 0] },    // Lane 2: approach from +X, rear-follow view
-  { position: [0, 24, -46], lookAt: [0, 1.4, 20] },    // Lane 3: approach from -Z, rear-follow view
+  { position: [0, 24, 46], lookAt: [0, 1.4, -20] },    // Lane 3: approach from -Z, rear-follow view
   { position: [-46, 24, 0], lookAt: [20, 1.4, 0] },    // Lane 4: approach from -X, rear-follow view
 ];
 
@@ -45,7 +49,15 @@ function Scene({ roads, cameraPose }: { roads: SimRoadState[]; cameraPose: Inter
   return <IntersectionWorld roads={roads} cameraPose={cameraPose} />;
 }
 
-export function TrafficCameraScene({ roads, cameraIndex, cameraLabel }: TrafficCameraSceneProps) {
+export function TrafficCameraScene({
+  roads,
+  cameraIndex,
+  cameraLabel,
+  onCanvasReady,
+  showDetectionOverlay = false,
+  boxedFrameSrc,
+  ambulanceDetected = false,
+}: TrafficCameraSceneProps) {
   const focusRoad = roads[cameraIndex] ?? roads[0];
   const cameraPose = CAMERA_POSES[cameraIndex] ?? CAMERA_POSES[0];
 
@@ -89,10 +101,25 @@ export function TrafficCameraScene({ roads, cameraIndex, cameraLabel }: TrafficC
           <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${signalBadgeClass(focusRoad.signal)}`}>
             {focusRoad.signal.toUpperCase()}
           </span>
+          {ambulanceDetected && (
+            <span className="px-2 py-0.5 rounded border border-red-500/60 bg-red-500/20 text-red-300 text-[10px] font-semibold">🚑 AMBULANCE</span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-slate-300">
-          <span>Queue {focusRoad.vehicles.length}</span>
-          <span>Entered {focusRoad.vehicleCount}</span>
+          <span>Vehicle Count {focusRoad.detectionCount}</span>
+          <span
+            className={
+              focusRoad.signal === "red"
+                ? "text-red-300"
+                : focusRoad.signal === "green"
+                  ? "text-green-300"
+                  : "text-amber-300"
+            }
+          >
+            {focusRoad.signal === "red"
+              ? `To Green ${focusRoad.signalTimeLeft.toFixed(1)}s`
+              : `To Red ${focusRoad.signalTimeLeft.toFixed(1)}s`}
+          </span>
         </div>
       </div>
 
@@ -107,12 +134,24 @@ export function TrafficCameraScene({ roads, cameraIndex, cameraLabel }: TrafficC
       <div className="relative h-full w-full overflow-hidden rounded-lg border border-cyan-200/20 bg-black">
         <Canvas
           shadows={false}
-          gl={{ antialias: true, powerPreference: "high-performance" }}
+          gl={{ antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
           dpr={[0.75, 1]}
           camera={{ position: cameraPose.position, fov: 42 }}
+          onCreated={(state) => {
+            const canvas = state.gl.domElement as HTMLCanvasElement;
+            onCanvasReady?.(canvas);
+          }}
         >
           <Scene roads={roadsForRender} cameraPose={cameraPose} />
         </Canvas>
+
+        {showDetectionOverlay && boxedFrameSrc && (
+          <img
+            src={boxedFrameSrc}
+            alt="AI boxed frame"
+            className="absolute inset-0 z-20 h-full w-full object-fill pointer-events-none"
+          />
+        )}
 
         <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(148,163,184,0.07)_0px,rgba(148,163,184,0.07)_1px,transparent_1px,transparent_3px)]" />
         <div className="animate-scanline pointer-events-none absolute inset-0 bg-linear-to-b from-cyan-200/0 via-cyan-100/10 to-cyan-200/0" />
