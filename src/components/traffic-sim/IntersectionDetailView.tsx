@@ -3,7 +3,7 @@ import { TrafficCameraScene } from "@/components/traffic-sim/TrafficCameraScene"
 import { useTrafficSim } from "@/context/TrafficSimContext";
 import type { SimIntersection, SimRoadState } from "@/types/traffic-sim";
 import { ArrowLeft, Zap } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface IntersectionDetailViewProps {
   intersection: SimIntersection;
@@ -17,22 +17,23 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
   const { updateLaneDetectionCount } = useTrafficSim();
   const [enableMLDetection, setEnableMLDetection] = useState(false);
   const [detectionCounts, setDetectionCounts] = useState<Map<number, number>>(new Map());
-  const [boxedFrames, setBoxedFrames] = useState<Map<number, string>>(new Map());
+  const [detectionOverlays, setDetectionOverlays] = useState<
+    Map<number, { detections: Array<{ type: string; bbox: number[] }>; frameWidth: number; frameHeight: number }>
+  >(new Map());
   const [apiStatus, setApiStatus] = useState<"idle" | "checking" | "connected" | "error">("idle");
   const [requestCount, setRequestCount] = useState(0);
   const [lastPollTime, setLastPollTime] = useState<string>("-");
   const canvasRefsMap = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const processingRef = useRef<boolean>(false);
   const frameCounterRef = useRef<Map<number, number>>(new Map());
-  const FRAME_SKIP = 8; // Process every 4th frame (75% reduction in inference calls)
+  const FRAME_SKIP = 2; // Process every 4th frame (75% reduction in inference calls)
 
   // Fetch detections from all cameras
   useEffect(() => {
     if (!enableMLDetection) {
-      canvasRefsMap.current.clear();
       frameCounterRef.current.clear();
       setDetectionCounts(new Map());
-      setBoxedFrames(new Map());
+      setDetectionOverlays(new Map());
       setApiStatus("idle");
       setRequestCount(0);
       setLastPollTime("-");
@@ -82,7 +83,7 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
               const response = await fetch(`${mlDetectionApiUrl}/detect-annotated`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: base64String }),
+                body: JSON.stringify({ image: base64String, camera_id: cameraIndex }),
               });
 
               if (!response.ok) return;
@@ -101,13 +102,15 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
                   return newMap;
                 });
 
-                if (typeof result.annotated_image === "string" && result.annotated_image.length > 0) {
-                  setBoxedFrames((prev) => {
-                    const newMap = new Map(prev);
-                    newMap.set(cameraIndex, `data:image/jpeg;base64,${result.annotated_image}`);
-                    return newMap;
+                setDetectionOverlays((prev) => {
+                  const newMap = new Map(prev);
+                  newMap.set(cameraIndex, {
+                    detections: result.detections,
+                    frameWidth: result.frame_width ?? canvas.width,
+                    frameHeight: result.frame_height ?? canvas.height,
                   });
-                }
+                  return newMap;
+                });
               }
             } catch (e) {
               setApiStatus("error");
@@ -149,7 +152,7 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
           </div>
           <button
             onClick={() => setEnableMLDetection(!enableMLDetection)}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all ${
+            className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all ${
               enableMLDetection
                 ? "border-purple-500/50 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30"
                 : "border-white/20 bg-black/35 text-slate-400 hover:bg-black/50"
@@ -202,14 +205,17 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
         {/* CCTV Camera Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {roads.map((road, index) => (
-            <div key={`camera-${road.id}`} className="h-[300px] relative">
+            <div
+              key={`camera-${road.id}`}
+              className="relative h-[300px] transition-[height] duration-300 group-data-[sidebar-expanded=false]/app:h-[370px]"
+            >
               <div className="absolute inset-0 z-0">
                 <TrafficCameraScene
                   roads={roads}
                   cameraIndex={index}
                   cameraLabel={`Lane ${index + 1}`}
                   showDetectionOverlay={enableMLDetection}
-                  boxedFrameSrc={boxedFrames.get(index)}
+                  detectionOverlay={detectionOverlays.get(index)}
                   ambulanceDetected={road.ambulanceDetected}
                   onCanvasReady={(canvas) => {
                     canvasRefsMap.current.set(index, canvas);
@@ -227,7 +233,7 @@ export function IntersectionDetailView({ intersection, roads, onBack, mlDetectio
         </div>
 
         {/* SUMO-style 2D intersection overview */}
-        <div className="h-[340px] md:h-[430px] lg:h-[540px] xl:h-[620px] 2xl:h-[700px]">
+        <div className="h-85 md:h-107.5 lg:h-135 xl:h-155 2xl:h-175">
           <SUMOIntersectionView roads={roads} />
         </div>
       </div>
