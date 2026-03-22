@@ -2,11 +2,11 @@ import { GlassPanel } from "@/components/GlassPanel";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import {
-    getSystemSettings,
-    resetSettings,
-    updateSystemSettings,
-    type SettingsUpdateRequest,
-    type SystemSettings
+  getSystemSettings,
+  resetSettings,
+  updateSystemSettings,
+  type SettingsUpdateRequest,
+  type SystemSettings
 } from "@/lib/settings-api";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Bell, Check, Cpu, Eye, RotateCcw, Save, Shield } from "lucide-react";
