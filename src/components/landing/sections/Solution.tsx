@@ -57,10 +57,10 @@ export function Solution() {
         {/* Section header */}
         <ScrollReveal className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-200 mb-6">
-            The AI-Powered
+            We have the
             <span className="text-cyan-300">
               {' '}
-              Answer
+              Solution
             </span>
           </h2>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
