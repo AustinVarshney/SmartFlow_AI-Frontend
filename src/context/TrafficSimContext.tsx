@@ -167,7 +167,7 @@ const TrafficSimContext = createContext<TrafficSimContextValue | null>(null);
 
 function randomVehicleType(): VehicleType {
   const n = Math.random();
-  if (n < 0.01) return "ambulance";
+  if (n < 0.05) return "ambulance";
   if (n < 0.80) return "auto";
   if (n < 0.10) return "bike";
   return "car";
@@ -311,17 +311,23 @@ function deriveDynamicAlgorithmConfig(
   };
 }
 
-function getEmergencyRoadIndex(roads: SimRoadState[], preferredRoadIndex: number | null) {
-  if (
-    preferredRoadIndex !== null &&
-    preferredRoadIndex >= 0 &&
-    preferredRoadIndex < roads.length &&
-    roads[preferredRoadIndex]?.ambulanceDetected
-  ) {
-    return preferredRoadIndex;
+function nextEmergencyRoadFromQueue(roads: SimRoadState[], emergencyQueue: number[]) {
+  for (const roadIndex of emergencyQueue) {
+    if (roadIndex >= 0 && roadIndex < roads.length && roads[roadIndex]?.ambulanceDetected) {
+      return roadIndex;
+    }
   }
 
   return roads.findIndex((road) => road.ambulanceDetected);
+}
+
+function pruneEmergencyQueue(roads: SimRoadState[], emergencyQueue: number[]) {
+  const seen = new Set<number>();
+  return emergencyQueue.filter((roadIndex) => {
+    if (seen.has(roadIndex)) return false;
+    seen.add(roadIndex);
+    return roadIndex >= 0 && roadIndex < roads.length && roads[roadIndex]?.ambulanceDetected;
+  });
 }
 
 function createEmergencyOverrideController(
@@ -329,14 +335,41 @@ function createEmergencyOverrideController(
   roads: SimRoadState[],
   emergencyRoadIndex: number,
   config: AlgorithmConfig,
+  dt: number,
 ): SignalControllerState {
   const emergencyDetectionCount = roads[emergencyRoadIndex]?.detectionCount ?? 0;
   const emergencyGreenTime = computeGreenDurationByDetections(emergencyDetectionCount, config);
 
-  if (controller.activeRoadIndex === emergencyRoadIndex && controller.phase === "green") {
+  // Safety transition: switch to yellow first, then move to green for the emergency road.
+  if (controller.activeRoadIndex !== emergencyRoadIndex) {
+    return {
+      activeRoadIndex: emergencyRoadIndex,
+      phase: "yellow",
+      timeLeft: YELLOW_DURATION,
+    };
+  }
+
+  if (controller.phase === "yellow") {
+    const remainingYellow = controller.timeLeft - dt;
+    if (remainingYellow > 0) {
+      return {
+        ...controller,
+        timeLeft: remainingYellow,
+      };
+    }
+
+    return {
+      activeRoadIndex: emergencyRoadIndex,
+      phase: "green",
+      timeLeft: emergencyGreenTime,
+    };
+  }
+
+  const remainingGreen = controller.timeLeft - dt;
+  if (remainingGreen > 0) {
     return {
       ...controller,
-      timeLeft: Math.max(controller.timeLeft, emergencyGreenTime),
+      timeLeft: remainingGreen,
     };
   }
 
@@ -801,7 +834,7 @@ function applyRoadTransfers(roads: SimRoadState[], transfers: RoadTransfer[]): S
 export function TrafficSimProvider({ children }: { children: ReactNode }) {
   const [algorithmConfig, setAlgorithmConfig] = useState<AlgorithmConfig>(DEFAULT_ALGORITHM_CONFIG);
   const settingsAlgorithmConfigRef = useRef<AlgorithmConfig>(DEFAULT_ALGORITHM_CONFIG);
-  const emergencyPriorityRoadRef = useRef<number | null>(null);
+  const emergencyQueueRef = useRef<number[]>([]);
   const dynamicMetricsRef = useRef<DynamicMetricsState>({
     prevQueueLength: 0,
     variationEma: 0,
@@ -879,9 +912,11 @@ export function TrafficSimProvider({ children }: { children: ReactNode }) {
 
   const updateRoadEmergencyDetected = useCallback((roadIndex: number, detected: boolean) => {
     if (detected) {
-      emergencyPriorityRoadRef.current = roadIndex;
-    } else if (emergencyPriorityRoadRef.current === roadIndex) {
-      emergencyPriorityRoadRef.current = null;
+      if (!emergencyQueueRef.current.includes(roadIndex)) {
+        emergencyQueueRef.current = [...emergencyQueueRef.current, roadIndex];
+      }
+    } else {
+      emergencyQueueRef.current = emergencyQueueRef.current.filter((queuedRoad) => queuedRoad !== roadIndex);
     }
 
     setState((prev) => ({
@@ -966,8 +1001,10 @@ export function TrafficSimProvider({ children }: { children: ReactNode }) {
           let next = prev;
           for (let i = 0; i < steps; i += 1) {
             const baseConfig = settingsAlgorithmConfigRef.current;
+
+            emergencyQueueRef.current = pruneEmergencyQueue(next.roads, emergencyQueueRef.current);
             const emergencyRoadIndex = baseConfig.emergencyOverride
-              ? getEmergencyRoadIndex(next.roads, emergencyPriorityRoadRef.current)
+              ? nextEmergencyRoadFromQueue(next.roads, emergencyQueueRef.current)
               : -1;
 
             // Emergency mode: pause normal adaptive road algorithm and force ambulance corridor.
@@ -986,7 +1023,7 @@ export function TrafficSimProvider({ children }: { children: ReactNode }) {
             });
 
             const nextController = emergencyRoadIndex >= 0
-              ? createEmergencyOverrideController(next.signalController, roadsWithWait, emergencyRoadIndex, cfg)
+              ? createEmergencyOverrideController(next.signalController, roadsWithWait, emergencyRoadIndex, cfg, fixedStep)
               : tickSignalControllerEnhanced(next.signalController, fixedStep, roadsWithWait, cfg);
             const roadsWithSignals = applySignalController(roadsWithWait, nextController, cfg);
             const density = currentSelected?.density || "medium";
