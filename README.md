@@ -1,299 +1,149 @@
-# 🚦 SmartFlow AI -- Intelligent Traffic & Emergency Grid
+# SmartFlow AI - Intelligent Traffic and Emergency Grid
 
-## Team: Commit & Conquer
+Team: Commit and Conquer
 
+India Innovates 2026 Hackathon - Urban Solutions
 
-------------------------------------------------------------------------
+Live Demo - https://smart-flow-ai-intelligent-traffic-e.vercel.app/
 
-# 🌆 Project Overview
+## Executive Summary
+SmartFlow AI is an AI-driven urban traffic orchestration platform that combines real-time computer vision, adaptive signal control, and emergency-first routing.
 
-SmartFlow AI is an **AI-powered smart traffic management system**
-designed to dynamically optimize traffic signal timings using real-time
-traffic data.
+The system ingests live camera frames, detects and classifies vehicles, estimates road load, and updates signal strategy dynamically. During emergencies, SmartFlow AI activates a coordinated green corridor to reduce response time for ambulances and fire services.
 
-Traditional traffic systems operate on **fixed signal timers**, which
-leads to inefficient traffic flow and unnecessary congestion. SmartFlow
-AI introduces **computer vision and intelligent algorithms** to analyze
-live traffic density and automatically adjust signal timings.
+## Problem
+Most city intersections still run static timers and manual overrides. This creates three major issues:
 
-The system also enables **AI-powered Green Corridors** that prioritize
-ambulances and fire services, ensuring faster emergency response and
-improved urban mobility.
+1. Peak-hour congestion from non-adaptive signal cycles.
+2. Delayed emergency vehicle movement through red-light corridors.
+3. High fuel waste and emissions from stop-and-go traffic.
 
-------------------------------------------------------------------------
+## Solution
+SmartFlow AI provides a modular control loop:
 
-# 🔴 Problem Statement
+1. Capture: live multi-camera intersection feed.
+2. Perception: YOLO-based vehicle detection and road-wise counts.
+3. Decision: adaptive timing logic based on density and priority rules.
+4. Action: intelligent signal phase updates and emergency corridor preemption.
+5. Visibility: unified dashboard for operators and stakeholders.
 
-Urban traffic management systems face several critical challenges:
+## Key Features
+1. Real-time vehicle detection and counting from CCTV-compatible feeds.
+2. Dynamic signal timing using live density metrics.
+3. Emergency detection and corridor preemption logic.
+4. 4-camera intersection monitoring with synchronized analytics.
+5. Operational dashboard with live status and simulation views.
 
--   Fixed signal timings cause inefficient traffic flow
--   Traffic congestion at busy intersections
--   Delays for ambulances and fire services
--   Lack of real-time traffic analysis
--   Increased fuel consumption and emissions
+## Architecture
+The platform is organized as:
 
-<p align="center">
-	<img src="https://github.com/user-attachments/assets/5b59e714-6f07-4e70-9e3e-f59813470338" alt="Current Situation" width="100%" />
-</p>
+1. Frontend (this repository): React + Vite + 3D traffic simulation UI.
+2. Backend API: traffic orchestration, state, and decision endpoints.
+3. Model service: FastAPI + YOLO inference pipeline.
+4. Simulator module: traffic scenario playback and corridor behavior.
 
-Current systems are **static and manual**, whereas modern smart cities
-require **intelligent and real-time adaptive traffic control**.
+High-level flow:
 
-------------------------------------------------------------------------
+1. Frontend submits camera frames to model service.
+2. Model service returns detections and metrics.
+3. Backend combines rules + metrics to compute signal actions.
+4. Frontend visualizes lane state, camera state, and emergency routing.
 
-# 💡 Proposed Solution
+## Tech Stack
+Frontend:
 
-SmartFlow AI introduces an **intelligent traffic optimization platform**
-that:
+1. React 19
+2. Vite 7
+3. TypeScript
+4. React Three Fiber / Drei
+5. Leaflet / React Leaflet
+6. Tailwind CSS
 
--   Uses computer vision to detect traffic density in real time
--   Dynamically adjusts signal timings based on vehicle count
--   Detects emergency vehicles
--   Automatically creates green corridors for emergency routes
--   Provides a centralized dashboard for traffic monitoring
+AI and Vision (connected services):
 
-------------------------------------------------------------------------
+1. Python
+2. OpenCV
+3. YOLO (Ultralytics)
+4. FastAPI
 
-# 🏗 System Architecture
+Backend and Integrations (connected services):
 
-The system architecture consists of multiple layers that process traffic
-data, perform AI analysis, and control traffic signals.
+1. Node.js
+2. Express
+3. Socket-based real-time updates
 
-### Architecture Flow
+## Repository Scope
+This repository contains the main frontend product experience and simulation interface.
 
+Important folders:
 
-<p align="center">
-	<img src="https://github.com/user-attachments/assets/0a38dc83-bca4-4d5a-9978-90c38ff5d758" alt="Architecture Flow" width="100%" />
-</p>
+1. src/components: UI modules and traffic simulation components.
+2. src/context: shared simulation and app state.
+3. src/pages: page-level views (traffic, dashboard, settings).
+4. src/lib: API and utility integrations.
 
+## Local Setup
+Prerequisites:
 
-------------------------------------------------------------------------
+1. Node.js 18+
+2. npm 9+
 
-# 🚗 Real-Time Traffic Detection
+Install and run:
 
-The system processes traffic camera feeds using **computer vision
-models**.
+```bash
+npm install
+npm run dev
+```
 
-Steps:
+Build and preview:
 
-1.  CCTV camera captures intersection video.
-2.  Video frames are processed using **OpenCV**.
-3.  **YOLOv8 object detection model** identifies vehicles.
-4.  Vehicles are counted road-wise.
-5.  Traffic density score is calculated.
-
-This score determines signal timing decisions.
-
-<p align="center">
-	<img src="https://github.com/user-attachments/assets/80cccfe5-fa6a-417c-a6ba-8c74f8293a8b" alt="Traffic Input" width="100%" />
-</p>
-
-------------------------------------------------------------------------
-
-# ⏱ Adaptive Signal Timing Engine
-
-Traditional traffic systems operate with **fixed timers (60--90
-seconds)**.
-
-SmartFlow AI dynamically adjusts signal duration based on traffic
-density.
-
-Signal Logic:
-
--   More vehicles → Longer green time
--   Fewer vehicles → Shorter green time
-
-Future versions can implement **Reinforcement Learning for adaptive
-signal control**.
-
-------------------------------------------------------------------------
-
-# 🚑 Emergency Vehicle Detection
-
-The system prioritizes emergency vehicles using two approaches.
-
-
-### AI Detection
-
--   Computer vision identifies ambulances
--   Audio models detect sirens
-
-------------------------------------------------------------------------
-
-# 🟢 Green Corridor System
-
-When an emergency vehicle is detected:
-
-1.  Route is calculated.
-2.  Signals along the path automatically turn green.
-3.  Cross traffic temporarily stops.
-4.  A synchronized **green corridor** is created.
-
-<p align="center">
-	<img src="https://github.com/user-attachments/assets/4b339900-273f-4f5b-bee4-c98576aea3a3" alt="Green Corridor" width="100%" />
-</p>
-
-This ensures **rapid emergency response and potentially saves lives**.
-
-------------------------------------------------------------------------
-
-# 🖥 Admin Dashboard
-
-The centralized dashboard provides:
-
--   Real-time traffic monitoring
--   Traffic heatmaps
--   Signal status visualization
--   Emergency route tracking
--   Traffic analytics and congestion patterns
-
-Administrators can monitor the **entire city traffic network** from a
-single interface.
-
-------------------------------------------------------------------------
-
-# 🧠 Technology Stack
-
-## AI & Computer Vision
-
--   YOLOv8 -- Real-time vehicle detection
--   OpenCV -- Video processing
--   PyTorch -- Deep learning framework
-
-## Backend
-
--   Node.js / Express.js
--   FastAPI
-
-## Frontend
-
--   React.js
-
-## Data & Storage
-
--   MongoDB
-
-## Mapping
-
--   Google Maps API
--   Leaflet
-
-## Simulation
-
--   SUMO (Simulation of Urban Mobility)
-
-## Deployment
-
--   Docker
--   Cloud VM
-
-------------------------------------------------------------------------
-
-# ⭐ Key Features
-
-- Dynamic AI Signal Timing
-Traffic lights automatically adjust green time based on real-time traffic density, eliminating inefficient fixed timers.
-
-- Emergency Vehicle Green Corridor
-The system detects ambulances and fire trucks and creates an instant green corridor by synchronizing signals along the route.
-
-- AI-Based Vehicle Detection
-Using YOLO computer vision, the system accurately detects cars, buses, bikes, and trucks from existing CCTV feeds.
-
-- Predictive Traffic Analytics
-Historical traffic data can be analyzed to predict peak congestion hours and optimize signal plans.
-
-
-------------------------------------------------------------------------
-
-# 🚀 Innovation
-
-SmartFlow AI introduces several innovations:
-
--   AI + Computer Vision for traffic monitoring
--   Emergency-first traffic intelligence
--   Data-driven governance insights
-
-
-------------------------------------------------------------------------
-
-# 🌍 Scalability
-
-The system is designed to scale easily.
-
--   From a **single intersection to city-wide traffic networks**
--   Compatible with **existing CCTV infrastructure**
--   Supports integration with **smart city platforms**
--   Can integrate with **IoT traffic sensors**
--   Ready for **future autonomous vehicle systems**
-
-------------------------------------------------------------------------
-
-# ⚙ Feasibility
-
-The solution is practical because it leverages existing infrastructure.
-
--   No need for expensive road sensors
--   Modular architecture for easy development
-
-
-------------------------------------------------------------------------
-
-# 📊 Expected Impact
-
-SmartFlow AI can significantly improve urban traffic efficiency.
-
-Expected outcomes:
-
--   25--40% reduction in traffic waiting time
--   Faster ambulance and emergency response
--   Reduced fuel consumption
--   Lower carbon emissions
--   Improved traffic flow efficiency
-
-------------------------------------------------------------------------
-
-# 📚 References
-
-Traffic Simulation\
-https://www.eclipse.org/sumo/
-
-YOLOv8\
-https://github.com/ultralytics/ultralytics
-Object Detection
-
-OpenCV\
-https://opencv.org/
-
-Traffic Datasets\
-Vehicles Detection And Counting (YOLOv8): A dataset focused on traffic density estimation using
-YOLOv8, containing 536 training and 90 validation images (640x640 pixels). 
-[Online]. Available:
-https://www.kaggle.com/code/hakim11/vehicles-detection-and-counting
-
-Olafenawa Moses,
-“TrafficNet Dataset,” GitHub. [Online]. Available:
-https://github.com/OlafenwaMoses/Traffic-Net
-
-Google Maps Platform\
-https://developers.google.com/maps
-
-------------------------------------------------------------------------
-
-# 👨‍💻 Team
-
-**Commit & Conquer**
-
--   Rupesh Varshney – B.Tech Computer Engg
--   Austin Varshney – B.Tech Computer Engg
--   Bhomik Varshney – B.Tech Computer Engg
--   Aryan Parashar – B.Tech AI
--   Prakhar Saxena – B.Tech AI
-
-**Institution** Zakir Husain College of Engineering & Technology, Aligarh Muslim University, Aligarh
-------------------------------------------------------------------------
-
-# ⭐ Hackathon Project
-
-India Innovates 2026 Hackathon\
-Domain: Urban Solutions
+```bash
+npm run build
+npm run serve
+```
+
+Type-check:
+
+```bash
+npm run typecheck
+```
+
+## Environment Configuration
+Create .env from .env.example and set service URLs:
+
+1. VITE_API_BASE_URL: backend API base URL.
+2. VITE_SIMULATIONS_URL: simulation app URL.
+3. VITE_AI_API_URL: model service URL (for example http://localhost:8000).
+4. BASE_PATH: frontend base path.
+
+
+## Expected Impact
+Based on simulation and architecture goals:
+
+1. Reduced average waiting time at intersections.
+2. Faster emergency passage through coordinated signals.
+3. Lower idle time, fuel burn, and emissions.
+4. Better operator visibility through centralized monitoring.
+
+## Why This Is Hackathon-Ready
+1. Clear urban problem with measurable outcomes.
+2. End-to-end demonstrable prototype.
+3. Modular architecture that can scale intersection-by-intersection.
+4. Uses existing camera infrastructure, improving deployability.
+
+## Team
+Commit and Conquer
+
+1. Rupesh Varshney - B.Tech Computer Engineering
+2. Austin Varshney - B.Tech Computer Engineering
+3. Bhomik Varshney - B.Tech Computer Engineering
+4. Aryan Parashar - B.Tech AI
+5. Prakhar Saxena - B.Tech AI
+
+Institution: Zakir Husain College of Engineering and Technology, Aligarh Muslim University
+
+## References
+1. YOLO / Ultralytics: https://github.com/ultralytics/ultralytics
+2. OpenCV: https://opencv.org/
+3. SUMO: https://www.eclipse.org/sumo/
+4. Google Maps Platform: https://developers.google.com/maps
